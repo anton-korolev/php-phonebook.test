@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+
+  phonebook.test:
+    # image: php:8.1-apache
+    build: .
+    container_name: phonebook.test
+
+    ports:
+      - 8080:80
+      # - 80:80
+
+    environment: 
+      TZ: Europe/Moscow      
+
+    volumes:
+      # Link Apache2 log dir
+      - ./log/apache2:/var/log/apache2
+      
+      # Link Phonebook.test application
+      - ./app:/app/phonebook.test
+
+    extra_hosts:
+      - host.docker.internal:192.168.0.1

@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "..\\"
+		}
+	],
+	"launch": {
+		// See .vscode/launch.json
+	},
+	"settings": {
+		"intelephense.environment.phpVersion": "8.1.0",
+	}
+}
