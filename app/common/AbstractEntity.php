@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace common;
 
+/**
+ * The base class for all Entities.
+ */
 abstract class AbstractEntity
 {
     private function __construct()
@@ -16,6 +19,18 @@ abstract class AbstractEntity
      * @return string[] attribute list.
      */
     abstract public static function attributes(): array;
+
+    /**
+     * Returns a list of key attributes.
+     *
+     * Key attributes are read-only and cannot be changed once created.
+     *
+     * @return string[] key attribute list.
+     */
+    public static function keyAttributes(): array
+    {
+        return [];
+    }
 
     /**
      * Returns a list of attribute validators.
@@ -34,9 +49,13 @@ abstract class AbstractEntity
     /**
      * Validates and sets new attribute values.
      *
+     * Incorrectly named attributes from the `$newValues` array will be skipped.
+     *
      * @param array<string,mixed> $newValues new attribute values.
+     *
+     * @return bool whether the validation and assignment of values passed without errors.
      */
-    public function setAttributes(array $newValues, ValidationResult|null $result = null): bool
+    protected function internalSetAttributes(array $newValues, ValidationResult|null $result = null): bool
     {
         $newValues = array_intersect_key($newValues, array_flip($this->attributes()));
         $validators = $this->attributeValidators();
@@ -115,9 +134,24 @@ abstract class AbstractEntity
     {
         $values = array_merge(array_fill_keys(static::attributes(), null), $values);
         $newInstance = new static();
-        if ($newInstance->setAttributes($values, $result)) {
+        if ($newInstance->internalSetAttributes($values, $result)) {
             return $newInstance;
         }
         return null;
+    }
+
+    /**
+     * Validates and sets new attribute values.
+     *
+     * Key and incorrectly named attributes from the `$newValues` array will be skipped.
+     *
+     * @param array<string,mixed> $newValues new attribute values.
+     *
+     * @return bool whether the validation and assignment of values passed without errors.
+     */
+    public function setAttributes(array $newValues, ValidationResult|null $result = null): bool
+    {
+        $newValues = array_diff_key($newValues, array_flip($this->keyAttributes()));
+        return $this->internalSetAttributes($newValues, $result);
     }
 }

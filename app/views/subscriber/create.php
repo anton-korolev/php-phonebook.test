@@ -3,7 +3,7 @@
 use common\helpers\FormField;
 
 /** @var \common\ValidationResult $validationResult */
-/** @var array<string,string>|null $values */
+/** @var array<string,string> $values */
 
 ?>
 <nav aria-label="breadcrumb">

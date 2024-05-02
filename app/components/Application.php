@@ -10,9 +10,8 @@ use common\AppException;
 use controllers\ErrorController;
 use controllers\SubscriberController;
 use repositories\SubscriberRepository;
+use services\SubscriberService;
 use Throwable;
-
-// use Throwable;
 
 class Application extends AbstractApplication
 {
@@ -22,7 +21,7 @@ class Application extends AbstractApplication
     public readonly Request $request;
     public readonly ResponseHeader $responseHeader;
     public readonly UrlManager $urlManager;
-    public readonly SubscriberRepository $subscriberRepository;
+    public readonly SubscriberService $subscriberService;
 
     /**
      * @return array<string,array{controller:string,action:string}>
@@ -64,17 +63,45 @@ class Application extends AbstractApplication
      */
     public function __construct()
     {
-        // $this->basePath = realpath(__DIR__ . '/..');
         parent::__construct(
             realpath(__DIR__ . '/..'),
         );
         $this->viewsPath = $this->basePath . '/views';
         $this->layoutsPath = $this->basePath . '/views/layouts';
+    }
+
+    /**
+     *
+     */
+    protected function init(): void
+    {
         $this->request = new Request();
         $this->urlManager = new UrlManager();
-        $this->subscriberRepository = new SubscriberRepository($this->basePath . '/db');
+    }
 
-        // $this->subscriberRepository->generate();
+    private SubscriberService|null $_subscriberService = null;
+
+    /**
+     *
+     */
+    public function getSubscriberService(): SubscriberService
+    {
+        if (null === $this->_subscriberService) {
+            try {
+                $repository = new SubscriberRepository(
+                    $this->basePath . '/db',
+                    true
+                );
+                $repository->load();
+            } catch (Throwable $th) {
+                throw new AppException($th->getMessage(), 500);
+            }
+
+            $this->_subscriberService = new SubscriberService(
+                $repository
+            );
+        }
+        return $this->_subscriberService;
     }
 
     /**
@@ -97,10 +124,10 @@ class Application extends AbstractApplication
     {
         try {
             // echo phpinfo();
-            $this->responseHeader = $this->urlManager->resolveRequest($this->request, false);
+            $this->init();
+            $this->responseHeader = $this->urlManager->resolveRequest($this->request, true);
             $route = $this->routeMap()[$this->responseHeader->route];
             $controller = $this->createController($route['controller']);
-            $this->subscriberRepository->load();
             $this->responseHeader->content = $controller->runAction($route['action']);
             $this->responseHeader->send();
         } catch (AppException $e) {

@@ -7,6 +7,9 @@ namespace models;
 use common\AbstractEntity;
 use common\ValidationResult;
 
+/**
+ * Subscriber model.
+ */
 class Subscriber extends AbstractEntity
 {
     protected string $phone;
@@ -19,6 +22,14 @@ class Subscriber extends AbstractEntity
     public static function attributes(): array
     {
         return ['phone', 'name', 'surname',];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function keyAttributes(): array
+    {
+        return ['phone'];
     }
 
     /**
@@ -68,25 +79,11 @@ class Subscriber extends AbstractEntity
 
     protected function validateName(string $attribute, mixed &$newValue, ValidationResult|null $result = null): bool
     {
-        // $newValue = trim($newValue);
-        // $hasError = false;
-        // if (empty($newValue)) {
-        //     $hasError = true;
-        //     $result?->addError($attribute, 'Ввведите имя абонента.');
-        // }
-        // return !$hasError;
         return $this->validateString($attribute, $newValue, 'Ввведите имя абонента.', $result);
     }
 
     protected function validateSurname(string $attribute, mixed &$newValue, ValidationResult|null $result = null): bool
     {
-        // $newValue = trim($newValue);
-        // $hasError = false;
-        // if (empty($newValue)) {
-        //     $hasError = true;
-        //     $result?->addError($attribute, 'Ввведите фамилию абонента.');
-        // }
-        // return !$hasError;
         return $this->validateString($attribute, $newValue, 'Ввведите фамилию абонента.', $result);
     }
 

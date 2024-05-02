@@ -8,8 +8,6 @@ use common\AbstractApplication;
 use common\AbstractController;
 use common\AppException;
 use common\ValidationResult;
-// use components\Application;
-use models\Subscriber;
 
 class SubscriberController extends AbstractController
 {
@@ -21,45 +19,21 @@ class SubscriberController extends AbstractController
      */
     public function actionIndex(): string
     {
-        $pageSize = 20;
-        $count = $this->app->subscriberRepository->count();
-        $pageCount = intdiv($count, $pageSize)
-            + ($count % $pageSize === 0 ? 0 : 1);
+        $page = $this->app->getSubscriberService()
+            ->GetPage($this->app->request->GET()['page'] ?? 1);
 
-        $currentPage = $this->app->request->GET()['page'] ?? 1;
-        if ($currentPage < 1) {
-            throw new AppException('?page=1', 301);
-        }
-        if ($currentPage > $pageCount) {
-            throw new AppException("?page=$pageCount", 301);
-        }
-
-        $subscribers = $this->app->subscriberRepository
-            ->select(($currentPage - 1) * $pageSize, $pageSize);
-
-        $count = count($subscribers);
-        $subscribers = array_chunk($subscribers, intdiv($count, 2) + $count % 2, true);
+        $count = count($page->subscribers);
+        $subscriberChunks = array_chunk(
+            $page->subscribers,
+            intdiv($count, 2) + $count % 2,
+            true
+        );
 
         return $this->render('index', [
-            'subscriberChunks' => $subscribers,
-            'pageCount' => $pageCount,
-            'currentPage' => $currentPage,
+            'subscriberChunks' => $subscriberChunks,
+            'pageCount' => $page->pageCount,
+            'currentPage' => $page->currentPage,
         ]);
-    }
-
-    /**
-     *
-     */
-    protected function findSubscriber(): Subscriber
-    {
-        $phone = $this->app->request->GET()['phone'] ?? null;
-        if ((null === $phone)
-            || !($subscriber = $this->app->subscriberRepository->find($phone))
-        ) {
-            throw new AppException("Номер не найден.", 404);
-        };
-
-        return $subscriber;
     }
 
     /**
@@ -68,7 +42,8 @@ class SubscriberController extends AbstractController
     public function actionView(): string
     {
         return $this->render('view', [
-            'subscriber' => $this->findSubscriber(),
+            'subscriber' => $this->app->getSubscriberService()
+                ->getSubscriber($this->app->request->GET()['phone'] ?? null),
         ]);
     }
 
@@ -77,19 +52,18 @@ class SubscriberController extends AbstractController
      */
     public function actionCreate(): string
     {
-        $values = null;
+        $values = [];
         $validationResult = new ValidationResult();
 
-        if ($this->app->request->isPost()) {
-            $values = $this->app->request->POST()['subscriber'] ?? [];
-            if ($this->app->subscriberRepository
-                ->insert($values, $validationResult)
-            ) {
-                throw new AppException(
-                    "/subscriber/view?phone={$values['phone']}",
-                    301
-                );
-            }
+        if (
+            $this->app->request->isPost()
+            && ($subscriber = $this->app->getSubscriberService()
+                ->createSubscriber(
+                    $values = $this->app->request->POST()['subscriber'] ?? [],
+                    $validationResult = new ValidationResult()
+                ))
+        ) {
+            throw new AppException("/subscriber/view?phone={$subscriber->getPhone()}", 301);
         }
 
         return $this->render('create', [
@@ -103,32 +77,25 @@ class SubscriberController extends AbstractController
      */
     public function actionUpdate(): string
     {
-        $subscriber = null;
+        $phone = $this->app->request->GET()['phone'] ?? null;
+        $newValues = $this->app->request->POST()['subscriber'] ?? [];
         $validationResult = new ValidationResult();
 
         if ($this->app->request->isPost()) {
-            $values = $this->app->request->POST()['subscriber'] ?? [];
-            if (array_key_exists('phone', $this->app->request->GET())) {
-                $values['phone'] = $this->app->request->GET()['phone'];
-            } else {
-                unset($values['phone']);
-            }
-
-            if ($this->app->subscriberRepository
-                ->update($values, $validationResult)
+            if ($subscriber = $this->app->getSubscriberService()
+                ->updateSubscriber($phone, $newValues, $validationResult)
             ) {
-                throw new AppException(
-                    "/subscriber/view?phone={$values['phone']}",
-                    301
-                );
+                throw new AppException("/subscriber/view?phone={$subscriber->getPhone()}", 301);
             }
         } else {
-            $subscriber = $this->findSubscriber();
-            $values = $subscriber->getAttributes();
+            $newValues = $this->app->getSubscriberService()
+                ->getSubscriber($phone)
+                ?->getAttributes() ?? [];
         }
 
         return $this->render('update', [
-            'values' => $values,
+            'phone' => $phone,
+            'newValues' => $newValues,
             'validationResult' => $validationResult
         ]);
     }
@@ -140,16 +107,15 @@ class SubscriberController extends AbstractController
     {
         if (
             $this->app->request->isPost()
-            && array_key_exists('phone', $this->app->request->GET())
-            && $this->app->subscriberRepository->delete(
-                $this->app->request->GET()['phone']
-            )
+            && $this->app->getSubscriberService()
+            ->deleteSubscriber($this->app->request->GET()['phone'] ?? null)
         ) {
             throw new AppException('/', 301);
         }
 
         return $this->render('delete', [
-            'subscriber' => $this->findSubscriber(),
+            'subscriber' => $this->app->getSubscriberService()
+                ->getSubscriber($this->app->request->GET()['phone'] ?? null),
         ]);
     }
 }

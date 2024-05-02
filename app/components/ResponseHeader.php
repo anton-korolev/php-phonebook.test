@@ -23,8 +23,7 @@ class ResponseHeader
         $this->statusCode = $statusCode;
         if (($statusCode >= 300) && ($statusCode < 400)) {
             $this->location = $message;
-        } elseif (404 === $statusCode) {
-            // $this->errorMessage = 'Page not found.';
+        } elseif ((404 === $statusCode) && empty($this->errorMessage)) {
             $this->errorMessage = 'Кажется что-то пошло не так! Страница, которую Вы запрашиваете, не существует.';
         } elseif (($statusCode >= 400) && ($statusCode < 500)) {
             $this->errorMessage = $message;
@@ -37,7 +36,6 @@ class ResponseHeader
     {
         if ($this->statusCode < 300) {
             header("HTTP/1.1 200 Ok");
-            // echo $this->content;
         } elseif (($this->statusCode >= 300) && ($this->statusCode < 400)) {
             header("Location: {$this->location}", true, $this->statusCode);
             return;

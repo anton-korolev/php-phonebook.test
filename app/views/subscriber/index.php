@@ -23,6 +23,7 @@ use common\helpers\Pagination;
             END;
 
                 foreach ($subscribers as $phone => $subscriber) {
+                    $phone = htmlspecialchars($phone);
                     $subscriber['surname'] = htmlspecialchars($subscriber['surname']);
                     $subscriber['name'] = htmlspecialchars($subscriber['name']);
                     echo <<<"END"
